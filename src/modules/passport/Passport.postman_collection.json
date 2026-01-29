@@ -1,0 +1,194 @@
+{
+	"info": {
+		"name": "Passport Module - Spike",
+		"description": "Colección de requests para probar el módulo Passport",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "1. Crear Pago",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"amount\": 1200,\n  \"currency\": \"MXN\",\n  \"reference\": \"order-123\",\n  \"description\": \"Pago de prueba\"\n}"
+				},
+				"url": {
+					"raw": "http://localhost:3000/api/v1/passport/payment",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "3000",
+					"path": [
+						"api",
+						"v1",
+						"passport",
+						"payment"
+					]
+				}
+			}
+		},
+		{
+			"name": "2. Consultar Estado de Pago",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"url": {
+					"raw": "http://localhost:3000/api/v1/passport/payment/:paymentId",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "3000",
+					"path": [
+						"api",
+						"v1",
+						"passport",
+						"payment",
+						":paymentId"
+					],
+					"variable": [
+						{
+							"key": "paymentId",
+							"value": "pay_123",
+							"description": "ID del pago a consultar"
+						}
+					]
+				}
+			}
+		},
+		{
+			"name": "3. Webhook - Payment Completed",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"id\": \"evt_123\",\n  \"type\": \"payment.completed\",\n  \"signature\": \"abc123signature\",\n  \"createdAt\": \"2024-01-01T00:05:00Z\",\n  \"data\": {\n    \"id\": \"pay_123\",\n    \"status\": \"completed\",\n    \"amount\": 1200,\n    \"currency\": \"MXN\",\n    \"reference\": \"order-123\",\n    \"description\": \"Pago de prueba\",\n    \"createdAt\": \"2024-01-01T00:00:00Z\",\n    \"updatedAt\": \"2024-01-01T00:05:00Z\"\n  }\n}"
+				},
+				"url": {
+					"raw": "http://localhost:3000/api/v1/passport/webhook",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "3000",
+					"path": [
+						"api",
+						"v1",
+						"passport",
+						"webhook"
+					]
+				}
+			}
+		},
+		{
+			"name": "4. Webhook - Payment Created",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"id\": \"evt_456\",\n  \"type\": \"payment.created\",\n  \"signature\": \"def456signature\",\n  \"createdAt\": \"2024-01-01T00:00:00Z\",\n  \"data\": {\n    \"id\": \"pay_789\",\n    \"status\": \"pending\",\n    \"amount\": 2500,\n    \"currency\": \"MXN\",\n    \"reference\": \"order-789\",\n    \"createdAt\": \"2024-01-01T00:00:00Z\",\n    \"updatedAt\": \"2024-01-01T00:00:00Z\"\n  }\n}"
+				},
+				"url": {
+					"raw": "http://localhost:3000/api/v1/passport/webhook",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "3000",
+					"path": [
+						"api",
+						"v1",
+						"passport",
+						"webhook"
+					]
+				}
+			}
+		},
+		{
+			"name": "5. Webhook - Payment Failed",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"id\": \"evt_789\",\n  \"type\": \"payment.failed\",\n  \"signature\": \"ghi789signature\",\n  \"createdAt\": \"2024-01-01T00:10:00Z\",\n  \"data\": {\n    \"id\": \"pay_999\",\n    \"status\": \"failed\",\n    \"amount\": 3000,\n    \"currency\": \"MXN\",\n    \"reference\": \"order-999\",\n    \"description\": \"Pago rechazado\",\n    \"createdAt\": \"2024-01-01T00:00:00Z\",\n    \"updatedAt\": \"2024-01-01T00:10:00Z\"\n  }\n}"
+				},
+				"url": {
+					"raw": "http://localhost:3000/api/v1/passport/webhook",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "3000",
+					"path": [
+						"api",
+						"v1",
+						"passport",
+						"webhook"
+					]
+				}
+			}
+		},
+		{
+			"name": "6. Crear Pago (sin descripción)",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"amount\": 5000,\n  \"currency\": \"MXN\",\n  \"reference\": \"test-ref-456\"\n}"
+				},
+				"url": {
+					"raw": "http://localhost:3000/api/v1/passport/payment",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "3000",
+					"path": [
+						"api",
+						"v1",
+						"passport",
+						"payment"
+					]
+				}
+			}
+		}
+	]
+}
+
