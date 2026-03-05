@@ -1,99 +1,131 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# Passport Bre-B DYNAMIC QR Spike
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+Minimal Node.js (native) spike that exposes a single endpoint `POST /payments` to generate Passport Bre-B **DYNAMIC QR** codes.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://coveralls.io/github/nestjs/nest?branch=master" target="_blank"><img src="https://coveralls.io/repos/github/nestjs/nest/badge.svg?branch=master#9" alt="Coverage" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
-
-## Description
-
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
-
-## Project setup
+## Quick start
 
 ```bash
-$ npm install
+npm install
+cp .env.example .env
+# Fill .env with your Passport credentials and static IDs (see below)
+npm run dev
 ```
 
-## Compile and run the project
+## Static data setup
+
+The service requires these **bootstrap once per environment** values to create DYNAMIC QR codes:
+
+| Variable | Description |
+|----------|-------------|
+| `PASSPORT_CUSTOMER_ID` | Customer ID from Passport (create via Postman) |
+| `PASSPORT_ACCOUNT_ID` | Account ID (optional; used for key discovery) |
+| `PASSPORT_KEY_ID` | Key ID from `POST /v1/account_keys` (breb_key) |
+
+**How to obtain them:**
+
+1. Use Postman to call Passport APIs:
+   - Create customer → get `customer_id`
+   - Create account → get `account_id`
+   - Create account key (`POST /v1/account_keys`) → get `key_id` (e.g. `bb0666bb-ffe7-4985-b2d6-b312a44f315a`)
+
+2. Set them either:
+   - **Env vars** (preferred): `PASSPORT_CUSTOMER_ID`, `PASSPORT_KEY_ID`, optionally `PASSPORT_ACCOUNT_ID`
+   - **File**: `storage/passport.static.json`:
+     ```json
+     {
+       "customer_id": "...",
+       "account_id": "...",
+       "key_id": "..."
+     }
+     ```
+
+If `key_id` is missing but `account_id` is set, the service will attempt to discover keys via `GET /v1/account_keys?account_id=...` and use the first ACTIVE key.
+
+## Endpoint
+
+### POST /payments
+
+Creates a Passport Bre-B DYNAMIC QR and returns the QR artifacts.
+
+**Request:**
+
+```json
+{
+  "amount": "10000.00",
+  "currency": "COP",
+  "type": "DYNAMIC",
+  "channel": "MPOS",
+  "qrReference": "7856912312384",
+  "additionalInfo": {
+    "transaction_purpose": "02",
+    "invoice_number": "123",
+    "terminal_label": "01",
+    "store_label": "sasc0193",
+    "mobile_phone_number": "3503503456"
+  },
+  "vat": { "vat_type": "FIXED", "vat_value": "100.00", "vat_base_value": "100.0" },
+  "inc": { "inc_type": "FIXED", "inc_value": "10.00" }
+}
+```
+
+- `amount`, `currency`: required
+- `type`: default `DYNAMIC`
+- `channel`: default `MPOS`
+- `qrReference`: optional; if omitted, a deterministic short reference is generated
+- `vat`, `inc`: optional; if omitted, defaults are sent (Passport requires both):
+  - vat: `{ vat_type: "FIXED", vat_value: "100.00", vat_base_value: "100.0" }`
+  - inc: `{ inc_type: "FIXED", inc_value: "10.00" }`
+- `additionalInfo`: optional; pass-through to Passport `additional_info`
+
+**Response:**
+
+```json
+{
+  "passport": {
+    "qr_id": "...",
+    "qr_code_reference": "...",
+    "status": "ACTIVE",
+    "is_paid": false
+  },
+  "qr": {
+    "qr_code_data": "...",
+    "qr_code_image_base64": "..."
+  },
+  "amount": { "value": "10000.00", "currency": "COP" }
+}
+```
+
+## Example curl
 
 ```bash
-# development
-$ npm run start
-
-# watch mode
-$ npm run start:dev
-
-# production mode
-$ npm run start:prod
+curl -X POST http://localhost:3000/payments \
+  -H "Content-Type: application/json" \
+  -H "x-request-id: my-trace-123" \
+  -d '{
+    "amount": "10000.00",
+    "currency": "COP"
+  }'
 ```
 
-## Run tests
+## Project structure
 
-```bash
-# unit tests
-$ npm run test
-
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
+```
+src/
+├── server.ts
+├── routes/payments.routes.ts
+├── controllers/payments.controller.ts
+├── services/passport-payment.service.ts
+├── clients/passport-api.client.ts
+├── storage/static-config.store.ts
+├── types/payment.types.ts
+├── utils/logger.ts
+├── utils/errors.ts
+└── utils/qr-sanitizer.ts
 ```
 
-## Deployment
+## Tech stack
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
-
-```bash
-$ npm install -g mau
-$ mau deploy
-```
-
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
-
-## Resources
-
-Check out a few resources that may come in handy when working with NestJS:
-
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
-
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+- Express
+- TypeScript
+- Zod (validation)
+- Node 18+ fetch with AbortController
