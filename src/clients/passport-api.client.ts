@@ -97,8 +97,8 @@ export class PassportApiClient {
         method: 'POST',
         body: {
           grant_type: 'client_credentials',
-          client_id: 'Oi37x8_tLZxhhWThNJmRdhfI0NE7QVcwHC4UWE6KACg',
-          client_secret: 'a9f690d4d0b98bda5d20bd9fe5553ce4b770214c8a5c290ed7c70c3bfb06eb8d',
+          client_id: this.config.clientId,
+          client_secret: this.config.clientSecret,
         },
       },
     );
